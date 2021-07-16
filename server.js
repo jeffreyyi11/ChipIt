@@ -9,6 +9,7 @@ app.use(express.urlencoded({extended: true}));
 const port = 8000;
 
 require("./server/routes/User.routes")(app);
+require("./server/routes/Score.routes")(app);
 require("./server/config/mongoose.config");
 
 app.listen(port, () => console.log(`Connected to port: ${port}`));
