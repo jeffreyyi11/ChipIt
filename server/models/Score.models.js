@@ -20,6 +20,6 @@ const ScoreSchema = new mongoose.Schema({
         type: Number,
         required: [true, "Please enter your score"]
     }
-})
+}, {timestamps: true})
 
 module.exports.Score = mongoose.model("Scores", ScoreSchema);
