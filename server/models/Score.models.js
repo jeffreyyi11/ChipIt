@@ -10,15 +10,18 @@ const ScoreSchema = new mongoose.Schema({
     },
     coursePar: {
         type: Number,
-        required: [true, "Please enter course par"]
+        required: [true, "Please enter course par"],
+        min: 1
     },
     holes: {
         type: Number,
-        required: [true, "How many holes was the course"]
+        required: [true, "How many holes was the course"],
+        min: 1
     },
     strokes: {
         type: Number,
-        required: [true, "Please enter your score"]
+        required: [true, "Please enter your score"],
+        min: 1,
     }
 }, {timestamps: true})
 
