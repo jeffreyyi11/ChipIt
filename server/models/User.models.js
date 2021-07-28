@@ -4,7 +4,11 @@ const bcrypt = require("bcrypt");
 const UserSchema = new mongoose.Schema({
     email: {
         type: String,
-        required: [true, "Email required"]
+        required: [true, "Email required"],
+        validate: {
+            validator: val => /^([\w-\.]+@([\w-]+\.)+[\w-]+)?$/.test(val),
+            message: "Please enter a valid email"
+        }
     },
     username: {
         type: String,
@@ -21,29 +25,23 @@ const UserSchema = new mongoose.Schema({
     }]
 }, {timestamps: true})
 
-UserSchema.pre('save', function(next){
-    if(!this.isModified('password'))
-    return next();
-    bcrypt.hash(this.password, 10, (err, hashedPW) => {
-        if(err) {
-            return next(err);
-        }
-        this.password = hashedPW;
-        next();
-    });
+UserSchema.virtual('confirmPassword')
+    .get(() => this._confirmPassword)
+    .set(value => this._confirmPassword = value);
+
+UserSchema.pre('save', function(next) {
+    bcrypt.hash(this.password, 10)
+        .then(hash => {
+            this.password = hash;
+            next();
+        });
 });
 
-UserSchema.methods.comparePassword = (password, cb) => {
-    bcrypt.compare(password, this.password, (err, isMatch) => {
-        if(err){
-            return cb(err);
-        } else {
-            if(!isMatch){
-                return cb(null, isMatch);
-            }
-            return cb(null, this);
-        }
-    });
-};
+UserSchema.pre('validate', function(next) {
+    if(this.password !== this.confirmPassword) {
+        this.invalidate('confirmPassword', 'Passwords must match');
+    }
+    next();
+})
 
 module.exports.User = mongoose.model("User", UserSchema);

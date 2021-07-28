@@ -1,12 +1,11 @@
 const {User} = require("../models/User.models");
-const passport = require("passport");
-const passportConfg = require("../passport");
-const Score = require("../models/Score.models");
-const JWT = require("jsonwebtoken");
+const {Score} = require("../models/Score.models");
+const bcrypt = require('bcrypt');
+const jwt = require("jsonwebtoken");
 
 module.exports = {
-    create: (req, res) => {
-        User.findOne({email: req.body.email}, (user, err) => {
+    register: (req, res) => {
+        User.findOne({email: req.body.email}, (err, user) => {
             if(err) {
                 res.status(500).json({message: {msgBody: "Error has occured", msgError: true}});
             }
@@ -14,27 +13,38 @@ module.exports = {
                 res.status(400).json({message: {msgBody: "Email is taken", msgError: true}});
             } else {
                 User.create(req.body)
-                    .then(user => res.status(201).json({message: {msgBody: "Registration Successful", msgError: false}}))
-                    .catch(err => res.status(400).json({message: {msgBody: "Error", msgError: true}}))
+                    .then(user => {
+                        const userToken = jwt.sign({
+                            id: user._id
+                        }, process.env.SECRET_KEY);
+                        res.cookie('usertoken', userToken, secret, {
+                            httpOnly: true
+                        })
+                        .json({msg: "Registration Successful"});
+                    })
+                    .catch(err => res.status(400).json(err));
             }
         });
     },
-    login: (req, res) => {
-        
+    login: async(req, res) => {
+        const user = await User.findOne({email: req.body.email})
+        if(user === null) {
+            return res.status(500).json({message: {msg: "Error Occured"}})
+        }
+        const correctPassword = await bcrypt.compare(req.body.password, user.password);
+        if(!correctPassword) {
+            return res.status(400).json({message: {msg: "Incorrect Password"}});
+        }
+        const userToken = jwt.sign({
+            id: user._id
+        }, process.env.SECRET_KEY);
+        res.cookie('usertoken', userToken, secret, {
+            httpOnly: true
+        })
+        .json({msg: "Successful Login"});
     },
-    findAll: (req, res) => {
-        User.find()
-            .then(users => res.json(users))
-            .catch(err => res.status(400).json(err))
-    },
-    findOne: (req, res) => {
-        User.findOne({_id: req.params.id})
-            .then(user => res.json(user))
-            .catch(err => res.status(400).json(err))
-    },
-    delete: (req, res) => {
-        User.deleteOne({_id: req.params.id})
-            .then(user => res.json(user))
-            .catch(err => res.status(400).json(err))
+    logout: (req, res) => {
+        res.clearCookie('usertoken');
+        res.status(200).json({msg:"Logout Successful"})
     }
 }
